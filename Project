@@ -1,0 +1,162 @@
+
+# helper function to create a list containing university names, corresponding continents and scores
+def UniScore(continentList, universityCapital, output):
+    uniContiScore = []
+    for c in continentList:
+        for u in universityCapital:
+            if universityCapital[-1] == c[0]:
+                uniContiScore.append(u[1]) # add university names to list
+                uniContiScore.append(u[4]) # add university scores names to list
+    return uniContiScore
+
+# helper function 1 to create a list of countries
+def availCountry(universityList, output):
+    countryList = []
+    for u in universityList:
+        if u[2] not in countryList:
+            countryList.append(u[2]) # add country names
+            output.write(u[2]+',') # write to file country names separated by comma
+    return countryList
+
+#helper function
+def universityCapital(universityList, capitalList):
+    for i in range(len(universityList)):
+        for c in capitalList:
+            if c[0] == universityList[i][2]:
+                universityList[i].append(c[1]) # add capital elements to list
+                universityList[i].append(c[2]) # add continent elements to list
+    return universityList
+
+def getInformation(selectedCountry, rankingFileName, CapitalsFileName):
+    universityList = [] # define new list to be used
+    capitalList = [] # define new list to be used
+    countryList = [] # define new list to be used
+    selectedCountry = selectedCountry.lower() # convert all uppercases to lower cases
+    continentList = [] # define new list to be used
+    uniContiScore = []
+    try: # university data opening and reading
+        with open(rankingFileName,'r', encoding = 'utf-8') as universityFile:  #open the file
+            universityFile.readline()   # skip header
+            for line in universityFile: # loop through every line in univerityFile list
+                line = line.strip()   # remove spaces
+                line = line.split(',')  # split each element by every comma
+
+                universityInfo = [line[0], line[1], line[2], line[3], line[-1]] # define university list by adding only elements to be used
+
+                universityList.append(universityInfo) # add elements to list created in helper function
+
+    except IOError:
+        try:
+             with open('output.txt', 'w', encoding = 'utf8') as output:
+                output.write('File not found')
+        except IOError:
+            print('Error in writing file')
+            quit()
+
+
+    try: # capital data opening and reading
+        with open(CapitalsFileName, 'r', encoding = 'utf-8') as capitalFile: # open the file
+            capitalFile.readline()  # skip header
+            for line in capitalFile: # loop through every line in capitalFile list
+                line = line.strip()  # remove spaces
+                line = line.split(',')  # split each element by every comma
+
+                capitalInfo = [line[0], line[1], line[-1]]
+
+                capitalList.append(capitalInfo)
+
+
+    except IOError: # in case there is no file / filenotfounderror, write exception to avoid termination
+
+        with open('output.txt', 'w', encoding='utf-8') as output: # in case there is no file / filenotfounderror, write exception to avoid termination
+            output.write('File not found')
+        quit()
+
+
+    try:
+        with open('output.txt', 'w', encoding = 'utf-8') as output:
+
+            # 1: total university number using length of the list
+            output.write('Total number of university => %d' % len(universityList))
+
+            # 2: available countries number
+            output.write('\nAvailable countries => ')
+            countryList = availCountry(universityList, output) #
+
+            # 3: available continents number using capi[2]
+            output.write('\nAvailable continents => ')
+            for country in countryList:
+                for capi in capitalList:
+                    if country == capi[0]:
+                        continentList.append(capi[2])
+                        output.write(capi[2]+',')
+
+            # 4: university with top international ranks using u[1] elements from university list
+            for u in universityList:
+                if u[2].lower() == selectedCountry:
+                    output.write('\nAt international rank => %s the university name is => %s'%(u[0], u[1]))
+
+            # 5: university with top national rank using u[3] elements from university
+            for u in universityList:
+                if u[2].lower() == selectedCountry: # match selected country with same elements in university list
+                    output.write('\nAt national rank => %s the university name is => %s'%(u[3], u[1]))
+
+            # 6: the average score
+            total = 0
+            count = 0
+            for u in universityList:
+                if u[2].lower() == selectedCountry: # match selected country with same elements in university list
+                    total += float(u[-1]) #update the total by adding each university score as u[-1] looped through
+                    count += 1 # update the count per iteration
+            try:
+                aveScore = total / count # calculate average using formula
+
+            except ZeroDivisionError: # to avoid error by dividng zero
+                print('No university in the selected country')
+
+            output.write('\nThe average score => %.2f%%'%aveScore)
+
+
+
+            #7: continent relative score
+            combinedList = universityCapital(universityList, capitalList)
+            highestScore = 0
+            selectedContinent = ''
+            for u in combinedList:
+                if u[2].lower() == selectedCountry: # match selected country with same elements in university list
+                    selectedContinent = u[-1]
+                    if highestScore < float(u[4]):
+                        highestScore = float(u[4])
+            relatScore = aveScore / highestScore
+            output.write('\nThe relative score to the top university in %s is => (%.2f / %.2f) x 100%% = %.2f%%'%(selectedContinent, aveScore, highestScore, relatScore*100))
+
+
+            #8: the capital city
+            for u in combinedList:
+                if u[2].lower() == selectedCountry: # match selected country with same elements in university list
+                    output.write('\nThe capital is => %s'%u[-2])
+
+            #9: the universities that hold the capital name
+            capiUnicount = 0
+            firstCount = 0 # to alter formatting of the text to only appear once when it comes to multiple output lines by setting the count with 0
+            for u in combinedList:
+                if u[2].lower() == selectedCountry: # match selected country with same elements in university list
+                    if u[-2] in u[1]: # narrow range to university names as u[1] that contain the same capital names in u[-2]
+                        if firstCount == 0:
+                            firstCount += 1 # to update the count of output for formatting purpose
+                            capiUnicount = capiUnicount +1 # update count of every university names of all iteration
+                            output.write('\nThe universities that contain the capital name => \n#%d %s'%(capiUnicount, u[1]))
+                        else:
+                            capiUnicount = capiUnicount + 1 # update count of every university names of all iteration
+                            output.write('\n') # to return every new output line
+                            output.write('#%d %s' %(capiUnicount, u[1]))
+
+
+
+    except IOError: # in case there is error in writing file, write exception to avoid termination
+        print('Error in writing file')
+
+    for c in capitalList:
+        print(c)
+    for u in universityList:
+        print (u)
